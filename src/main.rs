@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::collections::HashMap;
+use lazy_static::lazy_static;
 use std::env;
 use std::fs;
 
@@ -45,8 +46,10 @@ impl Risc16 {
     }
 
     fn execute_instr(&mut self, full_instr: &str) -> bool {
-        let re_space = Regex::new(r"\s+").unwrap();
-        let vec_instr: Vec<&str> = re_space.splitn(full_instr, 2).collect();
+        lazy_static! {
+            static ref RE_SPC: Regex = Regex::new(r"\s+").unwrap();
+        }    
+        let vec_instr: Vec<&str> = RE_SPC.splitn(full_instr, 2).collect();
         let instr = vec_instr.get(0).unwrap();
         let args = vec_instr.get(1).unwrap_or(&"");
         self.display_state(false);
