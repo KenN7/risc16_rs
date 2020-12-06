@@ -3,17 +3,24 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 
+enum Archtype {
+    IS0,
+    IS1,
+    IS2,
+}
+
 struct Risc16 {
-    registers: [i32; 8],
+    registers: [i16; 8],
     pc: usize,
-    ram: [i32; 256],
+    ram: [i16; 256],
     instr_count: u32,
     max_instr: u32,
     labels: HashMap<String, usize>,
+    arch: Archtype,
 }
 
 impl Risc16 {
-    fn build() -> Risc16 {
+    fn build(arch: Archtype) -> Risc16 {
         Risc16 {
             registers: [0; 8],
             pc: 0,
@@ -21,6 +28,7 @@ impl Risc16 {
             instr_count: 0,
             max_instr: 1000,
             labels: HashMap::new(),
+            arch,
         }
     }
     fn execute(&mut self, rom: &Vec<String>, labels: HashMap<String, usize>) {
@@ -32,16 +40,17 @@ impl Risc16 {
 
             self.instr_count += 1;
             self.pc += 1;
+            self.registers[0] = 0;
         }
     }
 
     fn execute_instr(&mut self, full_instr: &str) -> bool {
-        let vec_instr: Vec<&str> = full_instr.split(' ').collect();
+        let re_space = Regex::new(r"\s+").unwrap();
+        let vec_instr: Vec<&str> = re_space.splitn(full_instr, 2).collect();
         let instr = vec_instr.get(0).unwrap();
         let args = vec_instr.get(1).unwrap_or(&"");
-        println!("vec: {:?}", vec_instr);
         self.display_state(false);
-        println!("exec: {}({})",instr, args);
+        println!("exec: {}({})", instr, args);
 
         match instr.as_ref() {
             "nop" => self.nop(args),
@@ -84,13 +93,13 @@ impl Risc16 {
         (
             vec_arg[0].parse().unwrap(),
             vec_arg[1].parse().unwrap(),
-            vec_arg[2].to_owned(),
+            vec_arg[2].trim().to_owned(),
         )
     }
 
     fn process_args_1i(&self, args: &str, _instr: &str) -> (usize, String) {
         let vec_arg: Vec<&str> = args.split(',').collect();
-        (vec_arg[0].parse().unwrap(), vec_arg[1].to_owned())
+        (vec_arg[0].parse().unwrap(), vec_arg[1].trim().to_owned())
     }
 
     fn process_args_2(&self, args: &str, _instr: &str) -> Vec<usize> {
@@ -101,15 +110,21 @@ impl Risc16 {
         vec_arg
     }
 
-    fn process_string_args(&self, arg: &str) -> Option<i32> {
-        if arg.starts_with("0x") {
-            return Some(i32::from_str_radix(&arg[2..], 16).unwrap());
-        } else if arg.starts_with("0b") {
-            return Some(i32::from_str_radix(&arg[2..], 2).unwrap());
-        } else if arg.parse::<i32>().is_ok() {
-            return Some(arg.parse::<i32>().unwrap());
+    fn process_string_args(&self, arg: &str) -> Option<i16> {
+        if let Some(result) = arg.strip_prefix("0x") {
+            match i32::from_str_radix(result, 16) {
+                Ok(result) => Some(result as i16),
+                _ => None,
+            }
+        } else if let Some(result) = arg.strip_prefix("0b") {
+            match i32::from_str_radix(result, 2) {
+                Ok(result) => Some(result as i16),
+                _ => None,
+            }
+        } else if let Ok(result) = arg.parse::<i32>() {
+            Some(result as i16)
         } else {
-            return None;
+            None
         }
     }
 
@@ -127,13 +142,13 @@ impl Risc16 {
     }
 
     fn add(&mut self, args: Vec<usize>) -> bool {
-        self.registers[args[0]] = self.registers[args[1]] + self.registers[args[2]];
+        self.registers[args[0]] = self.registers[args[1]].wrapping_add(self.registers[args[2]]);
         true
     }
 
     fn addi(&mut self, args: (usize, usize, String)) -> bool {
         self.registers[args.0] =
-            self.registers[args.1] + self.process_string_args(&args.2).unwrap();
+            self.registers[args.1].wrapping_add(self.process_string_args(&args.2).unwrap());
         true
     }
 
@@ -148,13 +163,13 @@ impl Risc16 {
     }
 
     fn lui(&mut self, args: (usize, String)) -> bool {
-        self.registers[args.0] = self.process_string_args(&args.1).unwrap();
+        self.registers[args.0] = self.process_string_args(&args.1).unwrap().wrapping_shl(5);
         true
     }
 
     fn lw(&mut self, args: (usize, usize, String)) -> bool {
-        self.registers[args.0] =
-            self.ram[self.registers[args.0] as usize] + self.process_string_args(&args.2).unwrap();
+        self.registers[args.0] = self.ram
+            [self.registers[args.0] as usize + self.process_string_args(&args.2).unwrap() as usize];
         true
     }
 
@@ -166,16 +181,16 @@ impl Risc16 {
 
     fn beq(&mut self, args: (usize, usize, String)) -> bool {
         if self.registers[args.1] == self.registers[args.0] {
-            let lab = self.labels.get(&args.2).unwrap();
+            let lab = self.labels.get(&args.2).unwrap() - 1;
             // self.pc = self.registers[lab.to_owned()] as usize;
             self.pc = lab.to_owned() as usize;
-            println!("Jumping to: {}", self.pc)
+            println!("Jumping to: {}: {}", self.pc, &args.2);
         }
         true
     }
 
     fn jalr(&mut self, args: Vec<usize>) -> bool {
-        self.registers[args[0]] = self.pc as i32 + 1;
+        self.registers[args[0]] = self.pc as i16 + 1;
         self.pc = self.registers[args[1]] as usize - 1;
         true
     }
@@ -216,7 +231,7 @@ fn main() {
 
     let content = fs::read_to_string(filename).expect("Error reading file");
 
-    let mut proc = Risc16::build();
+    let mut proc = Risc16::build(Archtype::IS0);
 
     let (rom, labels) = load_rom(content);
     println!("{:?}", rom);
