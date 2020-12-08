@@ -1,0 +1,81 @@
+///////////////////////////////////////////////////////////
+///	Microprocessor Architecture: Laboratory 1	///
+///	Exercise 9					///
+///			Szydlelko Mateusz		///
+///			Maes Cyprien			///
+///////////////////////////////////////////////////////////
+
+		movi 1,0x7fff 
+		movi 2,0x0007
+
+// Initialisation of reg6 as a counter, reg4, reg3, reg5 at zero
+		movi	7,0x8000
+		movi	6,16
+		movi	4,0
+		movi	3,0
+		movi	5,0
+
+/////////////////////////	Begin Multiplication bit to bit		/////////////////////////
+
+main:	beq	6,0,endf
+		addi	6,6,-1
+		movi	7,0x8000
+		
+// Shift of reg3 and reg4
+		add		4,4,4
+		
+// If MSB of reg3 = 1, we must to add at reg4
+		nand	5,3,7
+		nand	5,5,5
+		beq		5,0,con
+		addi	4,4,1
+con:	add		3,3,3
+
+// Take the MSB of reg2 in the reg5
+		nand	5,7,2
+		nand	5,5,5
+		
+// Shift of reg2 to take knew bit of reg2 in decreasing
+		add		2,2,2
+		
+// If MSB of reg2 equals 0 we do nothing.
+		beq		5,0,main	
+		
+//The MSB of reg2 = 1. Add reg1 to the result in reg4(MSB) and reg3
+		nand	5,7,1	//Logic AND buid with two NANDs
+		nand	5,5,5	
+		nand	7,7,3	//Logic AND buid with two NANDs
+		nand	7,7,7
+
+// If MSB of reg1 and reg3 are the same, we can know directly the carrier	
+		beq		5,7,carry	
+		movi	7,0x7fff
+		nop
+
+// We don't need anymore the MSB of reg1 and reg3 (Put them at zero)
+		nand	5,7,3	//Logic AND buid with two NANDs
+		nand	5,5,5
+		nand	7,7,1	//Logic AND buid with two NANDs
+		nand	7,7,7
+	
+// Computation of the reg1 and reg3 without MSB in reg5
+		add	5,5,7
+		movi	7,0x8000	
+		nop
+
+// Computation of the MSB of reg5
+		nand	5,5,7	//Logic AND buid with two NANDs
+		nand	5,5,5
+
+carry:	beq		5,0,end
+		addi	4,4,1
+
+end:	add	3,3,1
+		beq	0,0,main
+
+/////////////////////////	End Multiplication bit to bit	/////////////////////////
+
+endf:	halt
+
+
+

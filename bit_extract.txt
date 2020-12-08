@@ -1,0 +1,101 @@
+//bit extraction : extract bit (reg2) from reg1
+addi 1,0,0x42 	//init reg 1, base value
+nop //backward compat with java simulator
+movi 7,0 	//init reg7 : bit to extract in reg1
+nop
+
+//init mask
+addi 6,0,1
+
+//generate mask
+mask_gen:beq 0,7,mask_done //mask done
+//need to shift the mask
+add 6,6,6 //shift to the left
+addi 7,7,-1 //decrement
+beq 0,0,mask_gen
+mask_done:
+
+//extract
+//and
+nand 6,6,1 //nand with reg1
+nand 6,6,6 //not reg 7
+//addi 7,0,0 //reg7=0 already 0
+beq 6,0,fini //mean bit was 0 (0 nand 1=>1)
+addi 7,0,1
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+fini: addi 7,7,0 //just to get the value in the trace
+halt

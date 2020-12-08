@@ -1,0 +1,61 @@
+movi 1,0xffff 	//init reg 1, base value
+movi 2,0xffff	//init reg 2
+
+//reg4 = store carries
+
+loop:
+
+//extract bit 15 from reg5
+//init mask
+movi 5,0x8000
+nand 6,5,5 //inverted mask in r6
+addi 4,0,0 //init reg4
+
+//and
+nand 7,1,5 //nand with reg1
+nand 7,7,7 //invert
+beq 7,0,fini_r1 //means bit was 0 (0 nand 1=>1)
+addi 4,4,1 //add 1 to carry reg
+nand 1,6,1 //clear bit
+nand 1,1,1 //get and
+
+fini_r1:
+nand 7,2,5 //nand with reg1
+nand 7,7,7 //invert
+beq 7,0,fini_r2 //means bit was 0 (0 nand 1=>1)
+addi 4,4,1
+nand 2,6,2 //clear bit
+nand 2,2,2 //get and
+
+fini_r2:
+add 3,1,2 // make the 15b+15b add
+nand 7,3,5 //nand with reg1
+nand 7,7,7 //invert
+beq 7,0,fini_sum //means bit was 0 (0 nand 1=>1)
+addi 4,4,1
+nand 3,6,3 //clear bit
+nand 3,3,3 //get and
+
+fini_sum:
+//now we must set the C reg (reg4) to reg4>>1 and the MSB of reg3 to reg4(0)
+//reg4(0) = and with 1
+addi 7,0,1 
+nand 7,4,7 
+nand 7,7,7 //r7=reg4(0)
+beq 7,0,set_r4_to_1
+//if r7=1...
+add 3,5,3 //add 0x8000 to reg3
+//else
+set_r4_to_1:
+addi 7,0,2 
+nand 7,4,7 
+nand 7,7,7 //r7= reg4(1)>>1
+//addi 7,0,0 //clear reg4
+beq 7,0,end //no need to do anything, no carry
+//if carry 
+addi 4,0,1 //set reg4 to 1
+halt
+end:
+addi 4,0,0 //just to get the value in the trace
+addi 3,3,0 //just to get the value in the trace
+halt //we are done! Next!
