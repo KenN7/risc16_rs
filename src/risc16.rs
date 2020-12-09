@@ -2,8 +2,9 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
 use std::env;
-use std::fs;
+use std::error::Error;
 use std::fmt::Write as FmtWrite;
+use std::fs;
 
 enum Archtype {
     IS0,
@@ -36,35 +37,38 @@ impl Risc16 {
         }
     }
 
-    fn execute(&mut self, rom: &[String], labels: HashMap<String, usize>) {
+    fn execute(
+        &mut self,
+        rom: &[String],
+        labels: HashMap<String, usize>,
+    ) -> Result<bool, Box<dyn Error>> {
         self.labels = labels;
         for _instr in 0..self.max_instr {
-            match self.execute_instr(rom.get(self.pc).expect("Reaching end of ROM, missing HALT")) {
-                Some(_result) => (),
-                None => break,
-            }
-
+            self.execute_instr(
+                rom.get(self.pc)
+                    .ok_or("Reaching end of ROM, missing HALT")?,
+            )?;
             self.instr_count += 1;
             self.pc += 1;
             self.registers[0] = 0;
         }
+        Ok(true)
     }
 
-    fn execute_instr(&mut self, full_instr: &str) -> Option<bool> {
+    fn execute_instr(&mut self, full_instr: &str) -> Result<bool, Box<dyn Error>> {
         lazy_static! {
             static ref RE_SPC: Regex = Regex::new(r"\s+").unwrap();
         }
         let vec_instr: Vec<&str> = RE_SPC.splitn(full_instr, 2).collect();
-        let instr = vec_instr.get(0).unwrap();
-        let args = vec_instr.get(1).unwrap_or(&"");
+        let instr = vec_instr.get(0).ok_or("get error")?;
+        let args = vec_instr.get(1).ok_or("get error")?;
         // self.display_state(false);
         println!("{}({})", instr, args);
-        writeln!(self.buffer, "{}({})", instr, args).unwrap();
-        
+        writeln!(self.buffer, "{}({})", instr, args)?;
 
         match *instr {
-            "nop" => self.nop(args),
-            "halt" => self.halt(args),
+            "nop" => self.nop(args).ok_or("nop error".into()),
+            "halt" => self.halt(args).ok_or("halt error".into()),
             "reset" => self.reset(args),
             "add" => self.add(self.process_args_3(args, instr)),
             "addi" => self.addi(self.process_args_2i(args, instr)),
@@ -77,17 +81,22 @@ impl Risc16 {
             "jalr" => self.jalr(self.process_args_2(args, instr)),
             _ => {
                 println!("Error: Instr not know: {}", instr);
-                writeln!(self.buffer,"Error: Instr not know: {}", instr).unwrap();
-                None
+                // writeln!(self.buffer,"Error: Instr not know: {}", instr).unwrap();
+                Err("Error: Instr not know".into())
             }
         }
     }
 
     fn display_state(&mut self, full: bool) {
         print!("PC: {}, Instr. count: {}", self.pc, self.instr_count);
-        write!(self.buffer, "PC: {}, Instr. count: {}", self.pc, self.instr_count).unwrap();
-        println!(", regs: {:?}", self.registers);
-        writeln!(self.buffer,", regs: {:?}", self.registers).unwrap();
+        write!(
+            self.buffer,
+            "PC: {}, Instr. count: {}",
+            self.pc, self.instr_count
+        )
+        .unwrap();
+        println!(", regs: {:x?}", self.registers);
+        writeln!(self.buffer, ", regs: {:x?}", self.registers).unwrap();
         if full {
             println!("ram: {:?}", self.ram);
         }
@@ -152,77 +161,82 @@ impl Risc16 {
         Some(true)
     }
 
-    fn reset(&mut self, _args: &str) -> Option<bool> {
-        self.jalr(vec![0, 0])
+    fn reset(&mut self, _args: &str) -> Result<bool, Box<dyn Error>> {
+        self.jalr(vec![0, 0])?;
+        Ok(true)
     }
 
-    fn add(&mut self, args: Vec<usize>) -> Option<bool> {
-        self.registers[args[0]] = self.registers[args[1]].wrapping_add(self.registers[args[2]]);
-        Some(true)
+    fn add(&mut self, args: Vec<usize>) -> Result<bool, Box<dyn Error>> {
+        self.registers[args[0]] = (*self.registers.get(args[1]).ok_or("")?)
+            .wrapping_add(*self.registers.get(args[2]).ok_or("")?);
+        Ok(true)
     }
 
-    fn addi(&mut self, args: (usize, usize, String)) -> Option<bool> {
+    fn addi(&mut self, args: (usize, usize, String)) -> Result<bool, Box<dyn Error>> {
         let imm = self
             .process_string_args(&args.2)
-            .expect("Error processing label/imm");
+            .ok_or("Error processing label/imm")?;
         if imm > 63 || imm < -64 {
             println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm).unwrap();
         }
-        self.registers[args.0] = self.registers[args.1].wrapping_add(imm);
-        Some(true)
+        self.registers[args.0] = (*self.registers.get(args.1).ok_or("")?).wrapping_add(imm);
+        Ok(true)
     }
 
-    fn nand(&mut self, args: Vec<usize>) -> Option<bool> {
-        self.registers[args[0]] = !(self.registers[args[1]] & self.registers[args[2]]);
-        Some(true)
+    fn nand(&mut self, args: Vec<usize>) -> Result<bool, Box<dyn Error>> {
+        self.registers[args[0]] =
+            !(*self.registers.get(args[1]).ok_or("")? & *self.registers.get(args[2]).ok_or("")?);
+        Ok(true)
     }
 
-    fn movi(&mut self, args: (usize, String)) -> Option<bool> {
+    fn movi(&mut self, args: (usize, String)) -> Result<bool, Box<dyn Error>> {
         self.registers[args.0] = self
             .process_string_args(&args.1)
-            .expect("Error processing label/imm");
-        Some(true)
+            .ok_or("Error processing label/imm")?;
+        Ok(true)
     }
 
-    fn lui(&mut self, args: (usize, String)) -> Option<bool> {
+    fn lui(&mut self, args: (usize, String)) -> Result<bool, Box<dyn Error>> {
         let imm = self
             .process_string_args(&args.1)
-            .expect("Error processing label/imm");
+            .ok_or("Error processing label/imm")?;
         if imm > 1023 || imm < 0 {
             println!("/!\\ Immediate Too BIG : {}", imm);
-            writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm).unwrap();
+            writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
         self.registers[args.0] = imm.wrapping_shl(5);
-        Some(true)
+        Ok(true)
     }
 
-    fn lw(&mut self, args: (usize, usize, String)) -> Option<bool> {
+    fn lw(&mut self, args: (usize, usize, String)) -> Result<bool, Box<dyn Error>> {
         let imm = self
             .process_string_args(&args.2)
-            .expect("Error processing label/imm");
+            .ok_or("Error processing label/imm")?;
         if imm > 63 || imm < -64 {
             println!("/!\\ Immediate Too BIG : {}", imm);
-            writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm).unwrap();
+            writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
-        self.registers[args.0] = self.ram[self.registers[args.0] as usize + imm as usize];
-        Some(true)
+        self.registers[args.0] =
+            self.ram[*self.registers.get(args.0).ok_or("")? as usize + imm as usize];
+        Ok(true)
     }
 
-    fn sw(&mut self, args: (usize, usize, String)) -> Option<bool> {
+    fn sw(&mut self, args: (usize, usize, String)) -> Result<bool, Box<dyn Error>> {
         let imm = self
             .process_string_args(&args.2)
-            .expect("Error processing label/imm");
+            .ok_or("Error processing label/imm")?;
         if imm > 63 || imm < -64 {
             println!("/!\\ Immediate Too BIG : {}", imm);
-            writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm).unwrap();
+            writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
-        self.ram[self.registers[args.0] as usize + imm as usize] = self.registers[args.0];
-        Some(true)
+        self.ram[*self.registers.get(args.0).ok_or("")? as usize + imm as usize] =
+            *self.registers.get(args.0).ok_or("")?;
+        Ok(true)
     }
 
-    fn beq(&mut self, args: (usize, usize, String)) -> Option<bool> {
-        if self.registers[args.1] == self.registers[args.0] {
+    fn beq(&mut self, args: (usize, usize, String)) -> Result<bool, Box<dyn Error>> {
+        if self.registers.get(args.1).ok_or("")? == self.registers.get(args.0).ok_or("")? {
             let lab;
             match self.labels.get(&args.2) {
                 Some(res) => lab = *res as i32 - 1,
@@ -230,34 +244,38 @@ impl Risc16 {
                     Some(res) => lab = res.into(),
                     _ => {
                         println!("Impossible to parse jump");
-                        writeln!(self.buffer,"Impossible to parse jump").unwrap();
-                        return None;
+                        writeln!(self.buffer, "Impossible to parse jump")?;
+                        return Err("Impossible to parse jump".into());
                     }
                 },
-            };
+            }
             if lab - (self.pc as i32) < -64 || lab - self.pc as i32 > 63 {
                 let jump = lab - self.pc as i32;
                 println!("WARNING, Jump too long: \"{}\" of size {}", &args.2, jump);
-                writeln!(self.buffer,"WARNING, Jump too long: \"{}\" of size {}", &args.2, jump).unwrap();
+                writeln!(
+                    self.buffer,
+                    "WARNING, Jump too long: \"{}\" of size {}",
+                    &args.2, jump
+                )?;
             }
             self.pc = lab as usize;
             println!("Jumping to: {}: {}", self.pc, &args.2);
-            writeln!(self.buffer,"Jumping to: {}: {}", self.pc, &args.2).unwrap();
+            writeln!(self.buffer, "Jumping to: {}: {}", self.pc, &args.2)?;
         }
-        Some(true)
+        Ok(true)
     }
 
-    fn jalr(&mut self, args: Vec<usize>) -> Option<bool> {
+    fn jalr(&mut self, args: Vec<usize>) -> Result<bool, Box<dyn Error>> {
         self.registers[args[0]] = self.pc as i16 + 1;
         self.pc = self.registers[args[1]] as usize - 1;
-        Some(true)
+        Ok(true)
     }
 }
 
-fn load_rom(content: String) -> (Vec<String>, HashMap<String, usize>) {
-    let re_cmts = Regex::new(r"(?m)//.*?$").unwrap();
+fn load_rom(content: String) -> Result<(Vec<String>, HashMap<String, usize>), Box<dyn Error>> {
+    let re_cmts = Regex::new(r"(?m)//.*?$")?;
     let code_without_comments = re_cmts.replace_all(&content, "\n");
-    let re_labop = Regex::new(r"^(\S*):(.*)").unwrap();
+    let re_labop = Regex::new(r"^(\S*):(.*)")?;
     let mut instr: Vec<String> = Vec::new();
     let mut labels = HashMap::new();
     let mut instr_counter = 0;
@@ -266,7 +284,7 @@ fn load_rom(content: String) -> (Vec<String>, HashMap<String, usize>) {
             labels.insert(line.replace(":", ""), instr_counter);
         // println!("lab only: {}, i {}", line, instr_counter)
         } else if re_labop.is_match(line.trim()) {
-            let cap = re_labop.captures(line.trim()).unwrap();
+            let cap = re_labop.captures(line.trim()).ok_or("Regex Problem")?;
             instr.push(cap[2].trim().to_owned());
             labels.insert(cap[1].trim().to_owned(), instr_counter);
             instr_counter += 1;
@@ -279,7 +297,7 @@ fn load_rom(content: String) -> (Vec<String>, HashMap<String, usize>) {
             // println!("instr: {}", line)
         }
     }
-    (instr, labels)
+    Ok((instr, labels))
 }
 
 fn main() {
@@ -291,22 +309,32 @@ fn main() {
 
     let mut proc = Risc16::build(Archtype::IS0);
 
-    let (rom, labels) = load_rom(content);
+    let (rom, labels) = load_rom(content).unwrap();
     println!("{:?}", rom);
     println!("{:?}", labels);
-    proc.execute(&rom, labels);
-
+    match proc.execute(&rom, labels) {
+        Ok(_res) => println!("Success !"),
+        Err(e) => {
+            writeln!(proc.buffer, "Error! {}", e).unwrap();
+            println!("Error! {}", e)
+        }
+    }
     proc.display_state(true);
 }
 
-pub fn main_from_str(code: &str) -> String{
+pub fn main_from_str(code: &str) -> String {
     let mut proc = Risc16::build(Archtype::IS0);
 
-    let (rom, labels) = load_rom(code.to_string());
+    let (rom, labels) = load_rom(code.to_string()).unwrap();
     println!("{:?}", rom);
     println!("{:?}", labels);
-    proc.execute(&rom, labels);
-
+    match proc.execute(&rom, labels) {
+        Ok(_res) => println!("Success !"),
+        Err(e) => {
+            writeln!(proc.buffer, "Error! {}", e).unwrap();
+            println!("Error! {}", e)
+        }
+    }
     proc.display_state(true);
     proc.buffer
 }
