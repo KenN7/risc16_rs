@@ -2,6 +2,7 @@
 {% block body %}
 <div class="row">
     <div class="col-6">
+        {% if unit == False %}
         <h3>Choose an exercise and upload your program...</h3>
         <p>This simulator will ignore 2 instructions per register used in the tests at the beginning of your code.
             Start your code after those instructions. Read section 5 of the handout for more information.</p>
@@ -10,55 +11,98 @@
 movi 5,0x0001 //this will be replaced by 2 nop
 add 5,5,5 
 halt //don't forget this</code></pre>
+        {% else %}
+        <h3>Code and run your program...</h3>
+        <p>The code written in the text area on the right will be executed after you hit the buttton,
+        the results are then displayed on the bottom of the page.</p>
+        <h5>Example:</h5>
+        <pre><code>
+movi 5,0x0001 
+add 5,5,5 
+halt //don't forget this</code></pre>
+        {% endif %}
+        {% if unit == False %}
     </div>
     <div class="col-6">
+        {% endif %}
         <form id="submit_code">
-            <p>
-                <input name="file" type="file"><br>
-                Selected exercise :
-                <SELECT name="exo" size="1">
-                    {% for exo in g.list_exo %}
-                    <option value="{{ exo }}">{{ exo }}</option>
-                    {% endfor %}
-                </SELECT><br>
-                Selected architecture :
-                <SELECT name="archi" size="1">
-                    <option value="IS0">IS0</option>
-                    <option value="IS1">IS1</option>
-                    <option value="IS2">IS2</option>
-                </SELECT><br>
-                Signed or unsigned logic :
-                <SELECT name="logic" size="1">
-                    <option value="0" selected>signed</option>
-                    <option value="1">unsigned</option>
-                </SELECT><br>
-                <input name="asm_digest" value="ASMdigest" checked type="checkbox">ASM digest<br>
-                <input name="trace" value="trace" type="checkbox">Execution trace<br>
-                Maximum instructions per test:
-                <SELECT name="exec" size="1">
-                    <option value="1000">10³</option>
-                    <option value="10000">10⁴</option>
-                    <option value="100000" selected>10⁵</option>
-                    <option value="1000000">10⁶</option>
-                    <!-- <option value="10000000">10⁷</option> -->
-                </SELECT><br>
-            </p>
+            {% if unit == False %}
+            <input name="file" type="file"><br>
+            Selected exercise :
+            <SELECT name="exo" size="1">
+                {% for exo in g.list_exo %}
+                <option value="{{ exo }}">{{ exo }}</option>
+                {% endfor %}
+            </SELECT><br>
+            {% endif %}
+            Selected architecture :
+            <SELECT name="archi" size="1">
+                <option value="IS0">IS0</option>
+                <option value="IS1">IS1</option>
+                <option value="IS2">IS2</option>
+            </SELECT><br>
+            Signed or unsigned logic :
+            <SELECT name="logic" size="1">
+                <option value="0" selected>signed</option>
+                <option value="1">unsigned</option>
+            </SELECT><br>
+            {% if unit == False %}
+            <input name="asm_digest" value="ASMdigest" checked type="checkbox">ASM digest<br>
+            <input name="trace" value="trace" type="checkbox">Execution trace<br>
+            {% endif %}
+            Maximum instructions per test:
+            <SELECT name="exec" size="1">
+                <option value="1000">10³</option>
+                <option value="10000">10⁴</option>
+                <option value="100000" selected>10⁵</option>
+                <option value="1000000">10⁶</option>
+                <!-- <option value="10000000">10⁷</option> -->
+            </SELECT><br>
+
+            {% if unit == False %}
             <input value="Upload" type="submit">
-        </form>
+            {% else %}
+            <input value="Test my code!" type="submit">
+            {% endif %}
+
+            {% if unit == True %}
     </div>
+    <div class="col-6">
+        <h6>Your code:</h6>
+        <textarea form="submit_code" id="code" name="code_area" style="font-family:monospace"
+            placeholder="Write your code here..." rows="30"></textarea>
+    </div>
+    </form>
+    {% else %}
 </div>
-    <h3>Output</h3> 
+</form>
+{% endif %}
+</form>
+</div>
+
+
+<h3>Output</h3>
 <div class="row">
     <div class="col-6">
-        <h6>Uploaded code:</h6> 
+        <h6>Uploaded code:</h6>
         <pre><code id="code_result">Run your code to see your results.</code></pre>
     </div>
     <div class="col-6">
-        <h6>Results:</h6> 
-
+        {% if unit == True %}
+        <h6>End state:</h6>
+        <pre><code id="end_state"></code></pre>
+        {% else %}
+        <h6>Results:</h6>
         <pre><code id="tests_results"></code></pre>
-        <!-- <div id="tests_results"> -->
-    </div>
+        {% endif %}
     </div>
 </div>
+{% if unit == True %}
+<div class="row">
+    <div class="col-6">
+        <h6>execution trace:</h6>
+        <pre><code id="tests_results"></code></pre>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

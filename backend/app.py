@@ -54,9 +54,9 @@ def upload():
 @app.route("/exercices", methods=["GET"])
 @app.route("/", methods=["GET"])
 def exos():
-    return render_template("index.html")
+    return render_template("index.html", unit=False)
 
 
 @app.route("/unit", methods=["GET"])
 def unit():
-    return render_template("index_unit.html")
+    return render_template("index.html", unit=True)
