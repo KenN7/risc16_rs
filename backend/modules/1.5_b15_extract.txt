@@ -1,0 +1,11 @@
+# Extract bit 15 from R1 => R7
+# fail:{ri1:0=#06x}(15) = {risc7:0}, should be {ro7:0}
+# pass:{ri1:0=#06x}(15) = {ro7:0} 
+in:r1=0x0000; 
+out:r7=0x0000; 
+in:r1=0x0001; 
+out:r7=0; 
+in:r1=0x8000; 
+out:r7=1;
+in:r1=0xFFFF;
+out:r7=1;

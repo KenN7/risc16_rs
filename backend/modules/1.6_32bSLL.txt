@@ -1,0 +1,19 @@
+# 16b SLL test
+# fail:reg6,5<<1 ({ri6:0=#06x}{ri5:0=04x}) = {risc6:0=#06x}{risc5:0=04x} but should be {ro6:0=#06x}{ro5:0=04x}
+# pass:reg6,5<<1 ({ri6:0=#06x}{ri5:0=04x}) = {ro6:0=#06x}{ro5:0=04x} 
+in:r6=0;r5=0; # r6,r5
+out:r6=0;r5=0x0000; #r6,r5=>r6,r5, shifted to the left
+in:r6=0;r5=1; # r6,r5
+out:r6=0;r5=0x0002; #r6,r5=>r6,r5, shifted to the left
+in:r6=0;r5=0x7FFF; # r6,r5
+out:r6=0;r5=0xFFFE; #r6,r5=>r6,r5, shifted to the left
+in:r6=0;r5=0x8000; # r6,r5
+out:r6=1;r5=0x0000; #r6,r5=>r6,r5, shifted to the left
+in:r6=0x8000;r5=0; # r6,r5
+out:r6=0;r5=0x0000; #r6,r5=>r6,r5, shifted to the left
+in:r6=0x8000;r5=1; # r6,r5
+out:r6=0;r5=0x0002; #r6,r5=>r6,r5, shifted to the left
+in:r6=1;r5=0xFFFF; # r6,r5
+out:r6=3;r5=0xFFFE; #r6,r5=>r6,r5, shifted to the left
+in:r6=4;r5=0x2000; # r6,r5
+out:r6=8;r5=0x4000; #r6,r5=>r6,r5, shifted to the left

@@ -9,21 +9,25 @@
     <script src="https://unpkg.com/custom-syntax-highlighter@latest/bin/index.js" async></script>
     <script src={{ url_for('static', filename='risc.js') }} async></script>
     <style>
+        code {
+            color: #e06c3c
+        }
+
         .comment {
             color: grey
         }
 
         .instr {
-            color: darkcyan
+            color: #3796b5
         }
 
         .label {
-            color: darkorchid
+            color: #5b954e
         }
 
         body.dark {
-            --bg-color: #212125;
-            --bg-secondary-color: #131316;
+            --bg-color: #252526;
+            --bg-secondary-color: #1e1e1e;
             --font-color: #f5f5f5;
             --color-grey: #ccc;
             --color-darkGrey: #777;

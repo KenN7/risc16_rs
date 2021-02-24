@@ -1,0 +1,11 @@
+# 16b SLL test
+# fail:{ri5:0=#06x}<<1 = {risc5:0=#06x}, should be {ro5:0=#06x}
+# pass:{ri5:0=#06x}<<1 = {ro5:0=#06x} 
+in:r5=0x0000; # r5
+out:r5=0x0000; #r5 shifted to the left
+in:r5=0x0001; # r5
+out:r5=0x0002; #r5 shifted to the left
+in:r5=0x8FFF; # r5
+out:r5=0x1FFE; #r5 shifted to the left
+in:r5=0x8000; # r5
+out:r5=0x0000; #r5 shifted to the left

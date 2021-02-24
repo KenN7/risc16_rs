@@ -30,7 +30,7 @@ halt //don't forget this</code></pre>
             <input name="file" type="file"><br>
             Selected exercise :
             <SELECT name="exo" size="1">
-                {% for exo in g.list_exo %}
+                {% for exo in list_exo %}
                 <option value="{{ exo }}">{{ exo }}</option>
                 {% endfor %}
             </SELECT><br>

@@ -1,0 +1,4 @@
+movi 1,1
+loop: movi 2,1
+beq 0,0,loop
+halt

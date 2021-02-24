@@ -99,13 +99,13 @@ enum Archtype {
 }
 
 impl Risc16 {
-    fn new(arch: Archtype) -> Risc16 {
+    fn new(arch: Archtype, max_instr: u32) -> Risc16 {
         Risc16 {
             registers: [0; 8],
             pc: 0,
             ram: [0; 256],
             instr_count: 0,
-            max_instr: 10000,
+            max_instr: max_instr,
             labels: HashMap::new(),
             arch,
             buffer: String::new(),
@@ -115,9 +115,9 @@ impl Risc16 {
     fn execute(
         &mut self,
         rom: &[(String, Args)],
-        labels: HashMap<String, usize>,
+        labels: &HashMap<String, usize>,
     ) -> RiscResult<bool> {
-        self.labels = labels;
+        self.labels = labels.to_owned();
         for instr in 0..=self.max_instr {
             let halt = self.execute_instr(
                 rom.get(self.pc)
@@ -140,8 +140,9 @@ impl Risc16 {
     fn execute_instr(&mut self, full_instr: &(String, Args)) -> RiscResult<bool> {
         // self.display_state(false);
         let (instr, args) = full_instr;
-        println!("{} {}", instr, args);
-        writeln!(self.buffer, "{} {}", instr, args)?;
+        // FIXME TODO exec trace:
+        // println!("{} {}", instr, args);
+        // writeln!(self.buffer, "{} {}", instr, args)?;
 
         match instr.as_str() {
             "nop" => self.nop(args).ok_or("nop error".into()),
@@ -157,10 +158,19 @@ impl Risc16 {
             "beq" => self.beq(args),
             "jalr" => self.jalr(args),
             _ => {
-                println!("Error: Instr not know: {}", instr);
+                // println!("Error: Instr not know: {}", instr);
                 Err("Error: Instr not know".into())
             }
         }
+    }
+
+    fn reset_state(&mut self) {
+        self.registers = [0; 8];
+        self.pc = 0;
+        self.ram = [0; 256];
+        self.instr_count = 0;
+        self.labels = HashMap::new();
+        self.buffer = String::new();
     }
 
     fn display_state(&mut self, full: bool) {
@@ -241,7 +251,7 @@ impl Risc16 {
             .process_string_args(&args.2)
             .ok_or("Error processing label/imm")?;
         if imm > 63 || imm < -64 {
-            println!("/!\\ Immediate Too BIG : {}", imm);
+            // println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm).unwrap();
         }
         self.registers[args.0] = (*self.registers.get(args.1).ok_or("")?).wrapping_add(imm);
@@ -281,7 +291,7 @@ impl Risc16 {
             .process_string_args(&args.1)
             .ok_or("Error processing label/imm")?;
         if imm > 1023 || imm < 0 {
-            println!("/!\\ Immediate Too BIG : {}", imm);
+            // println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
         self.registers[args.0] = imm.wrapping_shl(5);
@@ -298,7 +308,7 @@ impl Risc16 {
             .process_string_args(&args.2)
             .ok_or("Error processing label/imm")?;
         if imm > 63 || imm < -64 {
-            println!("/!\\ Immediate Too BIG : {}", imm);
+            // println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
         self.registers[args.0] =
@@ -316,7 +326,7 @@ impl Risc16 {
             .process_string_args(&args.2)
             .ok_or("Error processing label/imm")?;
         if imm > 63 || imm < -64 {
-            println!("/!\\ Immediate Too BIG : {}", imm);
+            // println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
         self.ram[*self.registers.get(args.0).ok_or("")? as usize + imm as usize] =
@@ -337,7 +347,7 @@ impl Risc16 {
                 None => match self.process_string_args(&args.2) {
                     Some(res) => lab = res.into(),
                     _ => {
-                        println!("Impossible to parse jump");
+                        // println!("Impossible to parse jump");
                         writeln!(self.buffer, "Impossible to parse jump")?;
                         return Err("Impossible to parse jump".into());
                     }
@@ -345,7 +355,7 @@ impl Risc16 {
             }
             if lab - (self.pc as i32) < -64 || lab - self.pc as i32 > 63 {
                 let jump = lab - self.pc as i32;
-                println!("WARNING, Jump too long: \"{}\" of size {}", &args.2, jump);
+                // println!("WARNING, Jump too long: \"{}\" of size {}", &args.2, jump);
                 writeln!(
                     self.buffer,
                     "WARNING, Jump too long: \"{}\" of size {}",
@@ -353,8 +363,9 @@ impl Risc16 {
                 )?;
             }
             self.pc = lab as usize;
-            println!("Jumping to: {}: {}", self.pc, &args.2);
-            writeln!(self.buffer, "Jumping to: {}: {}", self.pc, &args.2)?;
+            // println!("Jumping to: {}: {}", self.pc, &args.2);
+            //FIXME TODO exec trace
+            // writeln!(self.buffer, "Jumping to: {}: {}", self.pc, &args.2)?;
         }
         Ok(true)
     }
@@ -454,7 +465,7 @@ fn process_line(line: &str) -> RiscResult<(String, Args)> {
         "beq" => process_args_2i(args)?,
         "jalr" => process_args_vec(args, 2)?,
         _ => {
-            println!("Error: Instr not know: {}", instr);
+            // println!("Error: Instr not know: {}", instr);
             // writeln!(self.buffer,"Error: Instr not know: {}", instr).unwrap();
             return Err("Error: Instruction unknow".into());
             // Args::None(false)
@@ -517,12 +528,12 @@ fn main() {
 
     let content = fs::read_to_string(filename).expect("Error reading file");
 
-    let mut proc = Risc16::new(Archtype::IS0);
+    let mut proc = Risc16::new(Archtype::IS0, 100000);
 
     let (rom, labels) = load_rom(content).unwrap();
     println!("{:?}", rom);
     println!("{:?}", labels);
-    match proc.execute(&rom, labels) {
+    match proc.execute(&rom, &labels) {
         Ok(_res) => println!("Success !"),
         Err(e) => {
             writeln!(proc.buffer, "Error! {}", e).unwrap();
@@ -533,16 +544,16 @@ fn main() {
 }
 
 pub fn main_from_str(code: &str) -> String {
-    let mut proc = Risc16::new(Archtype::IS0);
+    let mut proc = Risc16::new(Archtype::IS0, 100000);
 
     let (rom, labels) = load_rom(code.to_string()).unwrap();
     println!("{:?}", rom);
     println!("{:?}", labels);
-    match proc.execute(&rom, labels) {
+    match proc.execute(&rom, &labels) {
         Ok(_res) => println!("Success !"),
         Err(e) => {
             writeln!(proc.buffer, "Error! {}", e).unwrap();
-            println!("Error! {}", e)
+            // println!("Error! {}", e)
         }
     }
     proc.display_state(true);
@@ -553,19 +564,49 @@ pub fn main_from_str(code: &str) -> String {
 fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     #[pyfn(m, "run_from_str_py")]
     fn run_from_str_py(_py: Python, code: &str) -> PyResult<(String, String)> {
-        let mut proc = Risc16::new(Archtype::IS0);
+        let mut proc = Risc16::new(Archtype::IS0, 100000);
         let (rom, labels) = match load_rom(code.to_string()) {
             Ok((rom, labels)) => (rom, labels),
             Err(e) => return Err(PyErr::from(e)),
         };
-        match proc.execute(&rom, labels) {
+        match proc.execute(&rom, &labels) {
             Ok(_res) => println!("Success !"),
             Err(e) => {
                 writeln!(proc.buffer, "Error! {}", e).unwrap();
-                println!("Error! {}", e)
+                // println!("Error! {}", e)
             }
         }
         Ok((proc.buffer.to_string(), proc.print_state(false)?))
+    }
+
+    #[pyfn(m, "test_batch_py")]
+    fn test_batch_py(
+        _py: Python,
+        max_instr: u32,
+        code: &str,
+        tests: Vec<Vec<(i32, i32)>>,
+    ) -> PyResult<Vec<[i16; 8]>> {
+        let mut proc = Risc16::new(Archtype::IS0, max_instr);
+        let (rom, labels) = match load_rom(code.to_string()) {
+            Ok((rom, labels)) => (rom, labels),
+            Err(e) => return Err(PyErr::from(e)),
+        };
+
+        let mut outputs = Vec::new();
+        for test in tests {
+            proc.reset_state();
+            for input in test {
+                proc.registers[input.0 as usize] = input.1 as i16
+            }
+            match proc.execute(&rom, &labels) {
+                Ok(_res) => println!("Success !"),
+                Err(e) => {
+                    writeln!(proc.buffer, "Error! {}", e).unwrap();
+                }
+            }
+            outputs.push(proc.registers)
+        }
+        Ok(outputs)
     }
 
     #[pyfn(m, "load_rom_py")]
