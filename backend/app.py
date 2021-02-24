@@ -13,13 +13,13 @@ import librisc16_rs
 app = Flask(__name__)
 
 
-@app.route("/", methods=["GET", "POST"])
-def index():
+@app.route("/submit", methods=["GET", "POST"])
+def upload():
     if request.method == "POST":
-        max_instr = int(request.form.get("exec"))
+        max_instr = request.form.get("exec")
         test_file = request.form.get("exo")
         archi = request.form.get("archi")
-        unsigned = int(request.form.get("logic"))
+        unsigned = request.form.get("logic")
 
         print(request.form)
 
@@ -29,15 +29,16 @@ def index():
         try:
             code = librisc16_rs.load_rom_py(text)
         except BaseException as e:
-            code = e
+            code = str(e)
+
         res = librisc16_rs.run_from_str_py(text)
         context = {
-            "status": "done",
-            "log_content": res,
+            "tests_results": res,
             "code_content": code,
         }
-        return render_template("log_done.html", **context)
+        return context
 
+
+@app.route("/", methods=["GET"])
+def index():
     return render_template("index.html")
-
-    return dict()

@@ -8,23 +8,6 @@ use std::fmt;
 use std::fmt::Write as FmtWrite;
 use std::fs;
 
-enum Archtype {
-    IS0,
-    IS1,
-    IS2,
-}
-
-struct Risc16 {
-    registers: [i16; 8],
-    pc: usize,
-    ram: [i16; 256],
-    instr_count: u32,
-    max_instr: u32,
-    labels: HashMap<String, usize>,
-    arch: Archtype,
-    buffer: String,
-}
-
 #[derive(Debug)]
 enum CustomError {
     Io(std::io::Error),
@@ -98,8 +81,25 @@ impl From<std::num::ParseFloatError> for CustomError {
 
 type RiscResult<T> = std::result::Result<T, CustomError>;
 
+struct Risc16 {
+    registers: [i16; 8],
+    pc: usize,
+    ram: [i16; 256],
+    instr_count: u32,
+    max_instr: u32,
+    labels: HashMap<String, usize>,
+    arch: Archtype,
+    buffer: String,
+}
+
+enum Archtype {
+    IS0,
+    IS1,
+    IS2,
+}
+
 impl Risc16 {
-    fn build(arch: Archtype) -> Risc16 {
+    fn new(arch: Archtype) -> Risc16 {
         Risc16 {
             registers: [0; 8],
             pc: 0,
@@ -136,8 +136,8 @@ impl Risc16 {
     fn execute_instr(&mut self, full_instr: &(String, Args)) -> RiscResult<bool> {
         // self.display_state(false);
         let (instr, args) = full_instr;
-        println!("{}({:?})", instr, args);
-        writeln!(self.buffer, "{}({:?})", instr, args)?;
+        println!("{} {}", instr, args);
+        writeln!(self.buffer, "{} {}", instr, args)?;
 
         match instr.as_str() {
             "nop" => self.nop(args).ok_or("nop error".into()),
@@ -366,6 +366,26 @@ enum Args {
     None(bool),
 }
 
+impl fmt::Display for Args {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Args::A23(a) => {
+                write!(
+                    f,
+                    "{}",
+                    a.iter()
+                        .map(|i| i.to_string())
+                        .collect::<Vec<_>>()
+                        .join(",")
+                )
+            }
+            Args::A1i(a) => write!(f, "{},{}", a.0, a.1),
+            Args::A2i(a) => write!(f, "{},{},{}", a.0, a.1, a.2),
+            Args::None(_a) => write!(f, ""),
+        }
+    }
+}
+
 fn process_args_vec(args: &str, len: usize) -> RiscResult<Args> {
     let vec_arg = args
         .split(',')
@@ -464,24 +484,10 @@ fn load_rom(content: String) -> RiscResult<(Vec<(String, Args)>, HashMap<String,
     Ok((instr, labels))
 }
 
-fn forge_code(instr: Vec<(String, Args)>, labels: HashMap<String, usize>) -> Vec<String> {
+fn format_code(instr: Vec<(String, Args)>, labels: HashMap<String, usize>) -> Vec<String> {
     let mut code_vec = instr
         .iter()
-        .map(|(s, args)| match args {
-            Args::A23(a) => {
-                format!(
-                    "{}({})",
-                    s,
-                    a.iter()
-                        .map(|i| i.to_string())
-                        .collect::<Vec<_>>()
-                        .join(",")
-                )
-            }
-            Args::A1i(a) => format!("{}({},{})", s, a.0, a.1),
-            Args::A2i(a) => format!("{}({},{},{})", s, a.0, a.1, a.2),
-            Args::None(_a) => format!("{}()", s),
-        })
+        .map(|(s, args)| format!("{} {}", s, args))
         .collect::<Vec<_>>();
 
     for l in labels.iter() {
@@ -499,7 +505,7 @@ fn main() {
 
     let content = fs::read_to_string(filename).expect("Error reading file");
 
-    let mut proc = Risc16::build(Archtype::IS0);
+    let mut proc = Risc16::new(Archtype::IS0);
 
     let (rom, labels) = load_rom(content).unwrap();
     println!("{:?}", rom);
@@ -515,7 +521,7 @@ fn main() {
 }
 
 pub fn main_from_str(code: &str) -> String {
-    let mut proc = Risc16::build(Archtype::IS0);
+    let mut proc = Risc16::new(Archtype::IS0);
 
     let (rom, labels) = load_rom(code.to_string()).unwrap();
     println!("{:?}", rom);
@@ -535,7 +541,7 @@ pub fn main_from_str(code: &str) -> String {
 fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     #[pyfn(m, "run_from_str_py")]
     fn run_from_str_py(_py: Python, code: &str) -> PyResult<String> {
-        let mut proc = Risc16::build(Archtype::IS0);
+        let mut proc = Risc16::new(Archtype::IS0);
         let (rom, labels) = load_rom(code.to_string()).unwrap();
         match proc.execute(&rom, labels) {
             Ok(_res) => println!("Success !"),
@@ -551,7 +557,7 @@ fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     fn load_rom_py<'a>(_py: Python, code: &str) -> PyResult<String> {
         match load_rom(code.to_string()) {
             Ok((rom, labels)) => {
-                let verified_code = forge_code(rom, labels);
+                let verified_code = format_code(rom, labels);
                 Ok(verified_code.join("\n"))
             }
             Err(e) => Err(PyErr::from(e)),

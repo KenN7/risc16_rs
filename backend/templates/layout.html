@@ -1,10 +1,39 @@
-<!DOCTYPE HTML >
+<!DOCTYPE HTML>
 <html>
-	<head>{% block head %}
-		<title>{% block title %}Index of {% endblock title %} - KH verification tool for ELEC-H-473</title>
-	{% endblock head %}</head>
-	
+
+<head>
+    {% block head %}
+    <title>{% block title %}Index of {% endblock title %} - KH verification tool for ELEC-H-473</title>
+    {% endblock head %}
+    <link rel="stylesheet" href="https://unpkg.com/chota@latest">
+    <script src="https://unpkg.com/custom-syntax-highlighter@latest/bin/index.js"></script>
+
+    <style>
+        .comment {
+            color: grey
+        }
+
+        .instr {
+            color: darkcyan
+        }
+        .label {
+            color: darkorchid
+        }
+    </style>
+</head>
+
 <body>
-{% block body %}{% endblock body %}
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1>
+                    RiSC16 Online Simulator Tool.
+                </h1>
+            </div>
+
+        </div>
+        {% block body %}{% endblock body %}
+    </div>
 </body>
+<script src={{ url_for('static', filename='risc.js') }}></script>
 </html>

@@ -1,44 +1,64 @@
 {% extends "layout.html" %}
 {% block body %}
-	<h1>Choose an exercise and upload your program...</h1>
-	<pre>This simulator will ignore 2 instructions per register used in the tests at the beginning of your code.
-Start your code after those instructions. Read section 5 of the handout for more information.</pre>
-	<pre>Example:</pre>
-	<pre>        movi 5,0x0001 //this will be replaced by 2 nop</pre>
-	<pre>        add 5,5,5 </pre>
-	<pre>        halt //don't forget this</pre>
+<div class="row">
+    <div class="col-6">
+        <h3>Choose an exercise and upload your program...</h3>
+        <p>This simulator will ignore 2 instructions per register used in the tests at the beginning of your code.
+            Start your code after those instructions. Read section 5 of the handout for more information.</p>
+        <h5>Example:</h5>
+        <pre><code>
+movi 5,0x0001 //this will be replaced by 2 nop
+add 5,5,5 
+halt //don't forget this</code></pre>
+    </div>
+    <div class="col-6">
+        <form id="submit_code">
+            <p>
+                <input name="file" type="file"><br>
+                Selected exercise :
+                <SELECT name="exo" size="1">
+                    {% for exo in g.list_exo %}
+                    <option value="{{ exo }}">{{ exo }}</option>
+                    {% endfor %}
+                </SELECT><br>
+                Selected architecture :
+                <SELECT name="archi" size="1">
+                    <option value="IS0">IS0</option>
+                    <option value="IS1">IS1</option>
+                    <option value="IS2">IS2</option>
+                </SELECT><br>
+                Signed or unsigned logic :
+                <SELECT name="logic" size="1">
+                    <option value="0" selected>signed</option>
+                    <option value="1">unsigned</option>
+                </SELECT><br>
+                <input name="asm_digest" value="ASMdigest" checked type="checkbox">ASM digest<br>
+                <input name="trace" value="trace" type="checkbox">Execution trace<br>
+                Maximum instructions per test:
+                <SELECT name="exec" size="1">
+                    <option value="1000">10³</option>
+                    <option value="10000">10⁴</option>
+                    <option value="100000" selected>10⁵</option>
+                    <option value="1000000">10⁶</option>
+                    <!-- <option value="10000000">10⁷</option> -->
+                </SELECT><br>
+            </p>
+            <input value="Upload" type="submit">
+        </form>
+    </div>
+</div>
+    <h3>Output</h3> 
+<div class="row">
+    <div class="col-6">
+        <h6>Uploaded code:</h6> 
+        <pre><code id="code_result">Run your code to see your results.</code></pre>
+    </div>
+    <div class="col-6">
+        <h6>Results:</h6> 
 
-	<form action="" method="post" enctype="multipart/form-data">
-	<p>
-	<input name="file" type="file"><br>
-		Selected exercise :
-	<SELECT name="exo" size="1">
-		{% for exo in g.list_exo %}
-		<option value="{{ exo }}">{{ exo }}</option>
-		{% endfor %}
-	</SELECT><br>
-		Selected architecture :
-	<SELECT name="archi" size="1">
-		<option value="IS0">IS0</option>
-		<option value="IS1">IS1</option>
-		<option value="IS2">IS2</option>
-	</SELECT><br>
-    Signed or unsigned logic :
-    <SELECT name="logic" size="1">
-        <option value="0" selected >signed</option>
-        <option value="1">unsigned</option>
-    </SELECT><br>
-	<input name="asm_digest" value="ASMdigest" checked type="checkbox">ASM digest<br>
-	<input name="trace" value="trace" type="checkbox">Execution trace<br>
-	Maximum instructions per test:
-	<SELECT name="exec" size="1">
-		<option value="1000">10³</option>
-		<option value="10000">10⁴</option>
-		<option value="100000" selected >10⁵</option>
-		<option value="1000000">10⁶</option>
-		<!-- <option value="10000000">10⁷</option> -->
-	</SELECT><br>
-	</p>
-	<input value="Upload" type="submit">
-	</form>
+        <pre><code id="tests_results"></code></pre>
+        <!-- <div id="tests_results"> -->
+    </div>
+    </div>
+</div>
 {% endblock %}
