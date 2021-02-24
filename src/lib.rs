@@ -118,17 +118,21 @@ impl Risc16 {
         labels: HashMap<String, usize>,
     ) -> RiscResult<bool> {
         self.labels = labels;
-        for _instr in 0..self.max_instr {
+        for instr in 0..=self.max_instr {
             let halt = self.execute_instr(
                 rom.get(self.pc)
                     .ok_or("Reaching end of ROM, missing HALT")?,
             )?;
+            self.registers[0] = 0;
             if !halt {
                 break;
+            } else if instr == self.max_instr {
+                return Err(CustomError::Instr(
+                    "Reaching max instruction count, missing HALT or infinite loop ?".into(),
+                ));
             }
             self.instr_count += 1;
             self.pc += 1;
-            self.registers[0] = 0;
         }
         Ok(true)
     }
@@ -154,7 +158,6 @@ impl Risc16 {
             "jalr" => self.jalr(args),
             _ => {
                 println!("Error: Instr not know: {}", instr);
-                // writeln!(self.buffer,"Error: Instr not know: {}", instr).unwrap();
                 Err("Error: Instr not know".into())
             }
         }
@@ -173,6 +176,16 @@ impl Risc16 {
         if full {
             println!("ram: {:?}", self.ram);
         }
+    }
+
+    fn print_state(&mut self, full: bool) -> RiscResult<String> {
+        let mut state: String = String::from("");
+        write!(state, "PC: {}, Instr. count: {}", self.pc, self.instr_count)?;
+        writeln!(state, ", regs: {:x?}", self.registers)?;
+        if full {
+            writeln!(state, "ram: {:?}", self.ram)?;
+        }
+        Ok(state)
     }
 
     fn process_string_args(&self, arg: &str) -> Option<i16> {
@@ -494,7 +507,6 @@ fn format_code(instr: Vec<(String, Args)>, labels: HashMap<String, usize>) -> Ve
         let s = code_vec.get_mut(*l.1).unwrap();
         *s = format!("{}: {}", l.0, s);
     }
-
     code_vec
 }
 
@@ -540,9 +552,12 @@ pub fn main_from_str(code: &str) -> String {
 #[pymodule]
 fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     #[pyfn(m, "run_from_str_py")]
-    fn run_from_str_py(_py: Python, code: &str) -> PyResult<String> {
+    fn run_from_str_py(_py: Python, code: &str) -> PyResult<(String, String)> {
         let mut proc = Risc16::new(Archtype::IS0);
-        let (rom, labels) = load_rom(code.to_string()).unwrap();
+        let (rom, labels) = match load_rom(code.to_string()) {
+            Ok((rom, labels)) => (rom, labels),
+            Err(e) => return Err(PyErr::from(e)),
+        };
         match proc.execute(&rom, labels) {
             Ok(_res) => println!("Success !"),
             Err(e) => {
@@ -550,7 +565,7 @@ fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
                 println!("Error! {}", e)
             }
         }
-        Ok(proc.buffer)
+        Ok((proc.buffer.to_string(), proc.print_state(false)?))
     }
 
     #[pyfn(m, "load_rom_py")]
