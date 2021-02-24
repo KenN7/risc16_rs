@@ -1,5 +1,6 @@
 // Small js script to handle uploading and syntax highlighting
 
+// Process results coming from backend
 function process_risc(event) {
     let code_pre = document.getElementById("code_result");
     let log = document.getElementById("tests_results");
@@ -16,9 +17,9 @@ function process_risc(event) {
     if (end_state) {
         end_state.innerHTML = d.end_state
     }
-
 }
 
+// Process syntax highlighting
 function highlight() {
     const patterns = {
         patterns: [
@@ -39,7 +40,15 @@ function highlight() {
     window.csHighlight(patterns)
 }
 
+// switch mode from dark to light
+function switchMode(el) {
+    const bodyClass = document.body.classList;
+    bodyClass.contains("dark")
+        ? ((el.innerHTML = "☀️"), bodyClass.remove("dark"))
+        : ((el.innerHTML = "🌙"), bodyClass.add("dark"))
+}
 
+// main function loaded with DOM
 window.addEventListener("load", function () {
     function sendData() {
         let XHR = new XMLHttpRequest()
@@ -67,5 +76,14 @@ window.addEventListener("load", function () {
 
     // highlight the code:
     highlight()
+
+    //if media prefers dark mode:
+    if (
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
+        document.body.classList.add("dark");
+        document.querySelector('#theme-switch').innerHTML = "🌙"
+    }
 })
 

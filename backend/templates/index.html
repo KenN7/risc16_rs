@@ -35,17 +35,23 @@ halt //don't forget this</code></pre>
                 {% endfor %}
             </SELECT><br>
             {% endif %}
+            <div class="row">
+            <div class="col">
             Selected architecture :
             <SELECT name="archi" size="1">
                 <option value="IS0">IS0</option>
                 <option value="IS1">IS1</option>
                 <option value="IS2">IS2</option>
             </SELECT><br>
+            </div>
+            <div class="col">
             Signed or unsigned logic :
             <SELECT name="logic" size="1">
                 <option value="0" selected>signed</option>
                 <option value="1">unsigned</option>
             </SELECT><br>
+            </div>
+            </div>
             {% if unit == False %}
             <input name="asm_digest" value="ASMdigest" checked type="checkbox">ASM digest<br>
             <input name="trace" value="trace" type="checkbox">Execution trace<br>
