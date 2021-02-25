@@ -53,8 +53,7 @@ halt //don't forget this</code></pre>
             </div>
             </div>
             {% if unit == False %}
-            <input name="asm_digest" value="ASMdigest" checked type="checkbox">ASM digest<br>
-            <input name="trace" value="trace" type="checkbox">Execution trace<br>
+            <input name="trace" value="1" type="checkbox">Execution trace<br>
             {% endif %}
             Maximum instructions per test:
             <SELECT name="exec" size="1">
@@ -62,7 +61,7 @@ halt //don't forget this</code></pre>
                 <option value="10000">10⁴</option>
                 <option value="100000" selected>10⁵</option>
                 <option value="1000000">10⁶</option>
-                <!-- <option value="10000000">10⁷</option> -->
+                <option value="10000000">10⁷</option>
             </SELECT><br>
 
             {% if unit == False %}

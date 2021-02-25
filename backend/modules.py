@@ -59,11 +59,11 @@ class exercise:
         for r in results:
             d = {}
             for reg in self.inputs[r[0]]:
-                d[f"ri{reg[0]}"] = reg[1]
+                d[f"ri{reg[0]}"] = to_16b_signed_hex(reg[1])
             for reg in self.outputs[r[0]]:
-                d[f"ro{reg[0]}"] = reg[0]
+                d[f"ro{reg[0]}"] = to_16b_signed_hex(reg[1])
             for i, reg in enumerate(tests[r[0]]):
-                d[f"risc{i}"] = reg
+                d[f"risc{i}"] = to_16b_signed_hex(reg)
             if r[1]:  # passed
                 l.append("Passed! - " + self.passpattern.format(**d))
             else:  # failed
@@ -75,13 +75,23 @@ class exercise:
 # This is because python always assumes hex coverted values are positive
 def int16i(i):
     b = 2 ** 16 // 2
-    if (n := int(i, 0)) >= b:
+    try:
+        n = int(i, 0)
+    except TypeError:
+        n = int(i)
+    if n >= b:
         return n % b - b
     return n
 
 
-if __name__ == "__main__":
-    ex = exercise()
-    print(ex.get_exercices())
+# convert back negative numbers to their 16 bits 2's complement notation
+def to_16b_signed_hex(i):
+    i = int16i(i)
+    if i < 0:
+        b = 2 ** 16
+        return i + b
+    return i
 
-    print(ex.get_input_test_vector("1.9_mul.txt"))
+
+if __name__ == "__main__":
+    pass

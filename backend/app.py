@@ -21,42 +21,44 @@ def upload():
         test_file = request.form.get("exo", "")
         archi = request.form.get("archi", "IS0")  # not used yet
         unsigned = request.form.get("logic", "unsigned")  # not used yet
-
-        print(request.form)
+        trace_bool = request.form.get("trace", 0) == "1"
+        # print(request.form)
 
         file = request.files.get("file")
-        if file:
+        if file and test_file != "":
             text = file.read().decode()
-            print("file")
+            ex = modules.exercise(test_file)
+            input_vec, output_vec = ex.get_input_test_vector()
+            try:
+                tests = librisc16_rs.test_batch_py(
+                    max_instr, trace_bool, text, input_vec
+                )
+                tests_passed = ex.verify(tests)
+                res = ex.create_report(tests_passed, tests)
+            except BaseException as e:
+                # print(e)
+                res = str(e)
+                trace = "Error!"
         else:
             text = request.form.get("code_area", "")
-
-        ex = modules.exercise(test_file)
-        input_vec, output_vec = ex.get_input_test_vector()
-        tests = librisc16_rs.test_batch_py(max_instr, text, input_vec)
-
-        tests_passed = ex.verify(tests)
-        res = ex.create_report(tests_passed, tests)
+            try:
+                res, trace = librisc16_rs.run_from_str_py(max_instr, trace_bool, text)
+                print(res, trace)
+            except BaseException as e:
+                # print(e)
+                res = str(e)
+                trace = "Error!"
 
         try:
             code = librisc16_rs.load_rom_py(text)
         except BaseException as e:
-            print(e)
+            # print(e)
             code = str(e)
-
-        # try:
-        #     res, trace = librisc16_rs.run_from_str_py(text)
-        # except BaseException as e:
-        #     print(e)
-        #     res = "Error (see above)"
-        #     trace = str(e)
-
-        print(tests)
 
         context = {
             "tests_results": res,
             "code_content": code,
-            # "end_state": trace,
+            "end_state": trace,
         }
         return context
 
@@ -64,8 +66,7 @@ def upload():
 @app.route("/exercices", methods=["GET"])
 @app.route("/", methods=["GET"])
 def exos():
-    ex = modules.exercise()
-    return render_template("index.html", unit=False, list_exo=ex.get_exercices())
+    return render_template("index.html", unit=False, list_exo=modules.get_exercices())
 
 
 @app.route("/unit", methods=["GET"])

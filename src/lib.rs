@@ -563,8 +563,13 @@ pub fn main_from_str(code: &str) -> String {
 #[pymodule]
 fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     #[pyfn(m, "run_from_str_py")]
-    fn run_from_str_py(_py: Python, code: &str) -> PyResult<(String, String)> {
-        let mut proc = Risc16::new(Archtype::IS0, 100000);
+    fn run_from_str_py(
+        _py: Python,
+        max_instr: u32,
+        trace: bool,
+        code: &str,
+    ) -> PyResult<(String, String)> {
+        let mut proc = Risc16::new(Archtype::IS0, max_instr);
         let (rom, labels) = match load_rom(code.to_string()) {
             Ok((rom, labels)) => (rom, labels),
             Err(e) => return Err(PyErr::from(e)),
@@ -583,6 +588,7 @@ fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     fn test_batch_py(
         _py: Python,
         max_instr: u32,
+        trace: bool,
         code: &str,
         tests: Vec<Vec<(i32, i32)>>,
     ) -> PyResult<Vec<[i16; 8]>> {
