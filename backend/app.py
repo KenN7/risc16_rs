@@ -22,6 +22,7 @@ def upload():
         archi = request.form.get("archi", "IS0")  # not used yet
         unsigned = request.form.get("logic", "unsigned")  # not used yet
         trace_bool = request.form.get("trace", 0) == "1"
+        trace = ""
         # print(request.form)
 
         file = request.files.get("file")
@@ -43,7 +44,7 @@ def upload():
             text = request.form.get("code_area", "")
             try:
                 res, trace = librisc16_rs.run_from_str_py(max_instr, trace_bool, text)
-                print(res, trace)
+                # print(res, trace)
             except BaseException as e:
                 # print(e)
                 res = str(e)

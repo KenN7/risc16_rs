@@ -65,9 +65,9 @@ class exercise:
             for i, reg in enumerate(tests[r[0]]):
                 d[f"risc{i}"] = to_16b_signed_hex(reg)
             if r[1]:  # passed
-                l.append("Passed! - " + self.passpattern.format(**d))
+                l.append((True, self.passpattern.format(**d)))
             else:  # failed
-                l.append("Failed - " + self.failpattern.format(**d))
+                l.append((False, self.failpattern.format(**d)))
         return l
 
 

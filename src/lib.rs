@@ -105,7 +105,7 @@ impl Risc16 {
             pc: 0,
             ram: [0; 256],
             instr_count: 0,
-            max_instr: max_instr,
+            max_instr,
             labels: HashMap::new(),
             arch,
             buffer: String::new(),
@@ -575,7 +575,7 @@ fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
             Err(e) => return Err(PyErr::from(e)),
         };
         match proc.execute(&rom, &labels) {
-            Ok(_res) => println!("Success !"),
+            Ok(_res) => (), //println!("Success !"),
             Err(e) => {
                 writeln!(proc.buffer, "Error! {}", e).unwrap();
                 // println!("Error! {}", e)
@@ -605,7 +605,7 @@ fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
                 proc.registers[input.0 as usize] = input.1 as i16
             }
             match proc.execute(&rom, &labels) {
-                Ok(_res) => println!("Success !"),
+                Ok(_res) => (), //println!("Success !"),
                 Err(e) => {
                     writeln!(proc.buffer, "Error! {}", e).unwrap();
                 }

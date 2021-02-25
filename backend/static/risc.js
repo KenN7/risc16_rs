@@ -2,20 +2,24 @@
 
 // Process results coming from backend
 function process_risc(event) {
-    let code_pre = document.getElementById("code_result");
-    let log = document.getElementById("tests_results");
-    let end_state = document.getElementById("end_state");
-
     let d = JSON.parse(event.target.response)
     console.log(d)
+
+    let code_pre = document.getElementById("code_result");
     if (code_pre) {
-        code_pre.innerHTML = d.code_content
+        code_pre.textContent = d.code_content
     }
-    if (log) {
-        log.innerHTML = d.tests_results
-    }
+
+    let end_state = document.getElementById("end_state");
     if (end_state) {
-        end_state.innerHTML = d.end_state
+        end_state.textContent = d.end_state
+    }
+
+    let tests = document.getElementById("tests_results");
+    if (tests && Array.isArray(d.tests_results)) {
+        tests.innerHTML = `<p>${d.tests_results.map(t => t[0] ? `👍 ${t[1]}` : `❌ ${t[1]}`).join('</p><p>')}</p>`
+    } else if (tests) {
+        tests.textContent = d.tests_results
     }
 }
 
@@ -48,30 +52,30 @@ function switchMode(el) {
         : ((el.innerHTML = "🌙"), bodyClass.add("dark"))
 }
 
+function sendData(form) {
+    let XHR = new XMLHttpRequest()
+    let FD = new FormData(form)
+    // Définissez ce qui se passe si la soumission s'est opérée avec succès
+    XHR.addEventListener("load", function (event) {
+        process_risc(event)
+        highlight()
+    });
+    // Definissez ce qui se passe en cas d'erreur
+    XHR.addEventListener("error", function (event) {
+        alert('Something went wrong with your request.')
+    })
+    // Configurez et envoyez la requête
+    XHR.open("POST", "http://127.0.0.1:5000/submit")
+    XHR.send(FD)
+}
+
 // main function loaded with DOM
 window.addEventListener("load", function () {
-    function sendData() {
-        let XHR = new XMLHttpRequest()
-        let FD = new FormData(form)
-        // Définissez ce qui se passe si la soumission s'est opérée avec succès
-        XHR.addEventListener("load", function (event) {
-            process_risc(event)
-            highlight()
-        });
-        // Definissez ce qui se passe en cas d'erreur
-        XHR.addEventListener("error", function (event) {
-            alert('Something went wrong with your request.')
-        })
-        // Configurez et envoyez la requête
-        XHR.open("POST", "http://127.0.0.1:5000/submit")
-        XHR.send(FD)
-    }
-
     // Accédez à l'élément form
     let form = document.getElementById("submit_code")
     form.addEventListener("submit", function (event) {
         event.preventDefault()
-        sendData()
+        sendData(form)
     });
 
     // highlight the code:
