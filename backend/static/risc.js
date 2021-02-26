@@ -1,7 +1,7 @@
 // Small js script to handle uploading and syntax highlighting
 
 // Process results coming from backend
-function process_risc(event) {
+function processRisc(event) {
     let d = JSON.parse(event.target.response)
     console.log(d)
 
@@ -21,6 +21,7 @@ function process_risc(event) {
     } else if (tests) {
         tests.textContent = d.tests_results
     }
+
 }
 
 // Process syntax highlighting
@@ -52,17 +53,25 @@ function switchMode(el) {
         : ((el.innerHTML = "🌙"), bodyClass.add("dark"))
 }
 
+function toggleSubmitButton(state) {
+    document.getElementById("submit_button").disabled = state;
+}
+
 function sendData(form) {
+    toggleSubmitButton(true)
+
     let XHR = new XMLHttpRequest()
     let FD = new FormData(form)
     // Définissez ce qui se passe si la soumission s'est opérée avec succès
     XHR.addEventListener("load", function (event) {
-        process_risc(event)
+        processRisc(event)
         highlight()
+        toggleSubmitButton(false)
     });
     // Definissez ce qui se passe en cas d'erreur
     XHR.addEventListener("error", function (event) {
         alert('Something went wrong with your request.')
+        toggleSubmitButton(false)
     })
     // Configurez et envoyez la requête
     XHR.open("POST", "http://127.0.0.1:5000/submit")

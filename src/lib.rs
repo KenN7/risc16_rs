@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use pyo3::exceptions::PyBaseException;
 use pyo3::prelude::*;
+use rayon::prelude::*;
 use regex::Regex;
 use std::collections::HashMap;
 use std::env;
@@ -613,6 +614,40 @@ fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
             outputs.push(proc.registers)
         }
         Ok(outputs)
+    }
+
+    #[pyfn(m, "test_batch_par_py")]
+    fn test_batch_par_py(
+        py: Python,
+        max_instr: u32,
+        trace: bool,
+        code: &str,
+        tests: Vec<Vec<(i32, i32)>>,
+    ) -> PyResult<Vec<[i16; 8]>> {
+        let (rom, labels) = match load_rom(code.to_string()) {
+            Ok((rom, labels)) => (rom, labels),
+            Err(e) => return Err(PyErr::from(e)),
+        };
+
+        py.allow_threads(|| {
+            let outputs = tests
+                .par_iter()
+                .map(|test| {
+                    let mut proc = Risc16::new(Archtype::IS0, max_instr);
+                    for input in test {
+                        proc.registers[input.0 as usize] = input.1 as i16
+                    }
+                    match proc.execute(&rom, &labels) {
+                        Ok(_res) => (), //println!("Success !"),
+                        Err(e) => {
+                            writeln!(proc.buffer, "Error! {}", e).unwrap();
+                        }
+                    }
+                    return proc.registers;
+                })
+                .collect::<Vec<_>>();
+            Ok(outputs)
+        })
     }
 
     #[pyfn(m, "load_rom_py")]

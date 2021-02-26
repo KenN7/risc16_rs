@@ -31,7 +31,10 @@ def upload():
             ex = modules.exercise(test_file)
             input_vec, output_vec = ex.get_input_test_vector()
             try:
-                tests = librisc16_rs.test_batch_py(
+                # tests = librisc16_rs.test_batch_py(
+                #     max_instr, trace_bool, text, input_vec
+                # )
+                tests = librisc16_rs.test_batch_par_py(
                     max_instr, trace_bool, text, input_vec
                 )
                 tests_passed = ex.verify(tests)
