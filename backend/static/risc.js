@@ -54,7 +54,11 @@ function switchMode(el) {
 }
 
 function toggleSubmitButton(state) {
-    document.getElementById("submit_button").disabled = state;
+    let button = document.getElementById("submit_button")
+    button.disabled = state;
+    button.classList.contains("button--loading")
+        ? button.classList.remove("button--loading")
+        : button.classList.add("button--loading")
 }
 
 function sendData(form) {
