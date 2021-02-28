@@ -81,7 +81,7 @@ function sendData(form) {
         toggleSubmitButton(false)
     })
     // Configurez et envoyez la requête
-    XHR.open("POST", "http://127.0.0.1:5000/submit")
+    XHR.open("POST", "/submit")
     XHR.send(FD)
 }
 
