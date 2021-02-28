@@ -1,114 +1,204 @@
-{% extends "layout.html" %}
-{% block body %}
-<div class="row">
-    <div class="col-6">
-        {% if unit == False %}
-        <h3>Choose an exercise and upload your program...</h3>
-        <p>This simulator will ignore 2 instructions per register used in the tests at the beginning of your code.
-            Start your code after those instructions. Read section 5 of the handout for more information.</p>
-        <h5>Example:</h5>
-        <pre><code>
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>{% block title %}Index of {% endblock title %} - KH verification tool for ELEC-H-473</title>
+    <link rel="stylesheet" href="https://unpkg.com/chota@latest">
+    <script src="https://unpkg.com/custom-syntax-highlighter@latest/bin/index.js"></script>
+    <script src={{ url_for('static', filename='risc.js') }} async></script>
+    <style>
+        code {
+            color: #e06c3c
+        }
+
+        .comment {
+            color: grey
+        }
+
+        .instr {
+            color: #3796b5
+        }
+
+        .label {
+            color: #5b954e
+        }
+
+        body.dark {
+            --bg-color: #252526;
+            --bg-secondary-color: #1e1e1e;
+            --font-color: #f5f5f5;
+            --color-grey: #ccc;
+            --color-darkGrey: #777;
+        }
+
+        #tests_results {
+            background-color: var(--bg-secondary-color);
+            font-family: var(--font-family-mono);
+            padding: 1rem;
+            font-size: 90%;
+            /*var(--font-size);*/
+        }
+
+        #submit_button {
+            position: relative;
+        }
+
+        .button--loading::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: auto;
+            border: 4px solid transparent;
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: button-loading-spinner 1s ease infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+
+            to {
+                transform: rotate(1turn);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <nav class="nav">
+            <div class="nav-left">
+                <h1>
+                    RiSC16 Online Simulator Tool.
+                </h1>
+            </div>
+            <div class="nav-right">
+                <a class="button outline dark" id="theme-switch" onclick="switchMode(this)">☀️</a>
+            </div>
+        </nav>
+
+        <div class="row">
+            <div class="col-6">
+                {% if unit == False %}
+                <h3>Choose an exercise and upload your program...</h3>
+                <p>This simulator will ignore 2 instructions per register used in the tests at the beginning of your
+                    code.
+                    Start your code after those instructions. Read section 5 of the handout for more information.</p>
+                <h5>Example:</h5>
+                <pre><code>
 movi 5,0x0001 //this will be replaced by 2 nop
 add 5,5,5 
 halt //don't forget this</code></pre>
-        {% else %}
-        <h3>Code and run your program...</h3>
-        <p>The code written in the text area on the right will be executed after you hit the buttton,
-        the results are then displayed on the bottom of the page.</p>
-        <h5>Example:</h5>
-        <pre><code>
+                {% else %}
+                <h3>Code and run your program...</h3>
+                <p>The code written in the text area on the right will be executed after you hit the buttton,
+                    the results are then displayed on the bottom of the page.</p>
+                <h5>Example:</h5>
+                <pre><code>
 movi 5,0x0001 
 add 5,5,5 
 halt //don't forget this</code></pre>
-        {% endif %}
-        {% if unit == False %}
-    </div>
-    <div class="col-6">
-        {% endif %}
-        <form id="submit_code">
-            {% if unit == False %}
-            <input name="file" type="file"><br>
-            Selected exercise :
-            <SELECT name="exo" size="1">
-                {% for exo in list_exo %}
-                <option value="{{ exo }}">{{ exo }}</option>
-                {% endfor %}
-            </SELECT><br>
-            {% endif %}
-            <div class="row">
-            <div class="col">
-            Selected architecture :
-            <SELECT name="archi" size="1">
-                <option value="IS0">IS0</option>
-                <option value="IS1">IS1</option>
-                <option value="IS2">IS2</option>
-            </SELECT><br>
+                {% endif %}
+                {% if unit == False %}
             </div>
-            <div class="col">
-            Signed or unsigned logic :
-            <SELECT name="logic" size="1">
-                <option value="0" selected>signed</option>
-                <option value="1">unsigned</option>
-            </SELECT><br>
-            </div>
-            </div>
-            {% if unit == False %}
-            <input name="trace" value="1" type="checkbox">Execution trace<br>
-            {% endif %}
-            Maximum instructions per test:
-            <SELECT name="exec" size="1">
-                <option value="1000">10³</option>
-                <option value="10000">10⁴</option>
-                <option value="100000" selected>10⁵</option>
-                <option value="1000000">10⁶</option>
-                <option value="10000000">10⁷</option>
-            </SELECT><br>
+            <div class="col-6">
+                {% endif %}
+                <form id="submit_code">
+                    {% if unit == False %}
+                    <input name="file" type="file"><br>
+                    Selected exercise :
+                    <SELECT name="exo" size="1">
+                        {% for exo in list_exo %}
+                        <option value="{{ exo }}">{{ exo }}</option>
+                        {% endfor %}
+                    </SELECT><br>
+                    {% endif %}
+                    <div class="row">
+                        <div class="col">
+                            Selected architecture :
+                            <SELECT name="archi" size="1">
+                                <option value="IS0">IS0</option>
+                                <option value="IS1">IS1</option>
+                                <option value="IS2">IS2</option>
+                            </SELECT><br>
+                        </div>
+                        <div class="col">
+                            Signed or unsigned logic :
+                            <SELECT name="logic" size="1">
+                                <option value="0" selected>signed</option>
+                                <option value="1">unsigned</option>
+                            </SELECT><br>
+                        </div>
+                    </div>
+                    {% if unit == False %}
+                    <input name="trace" value="1" type="checkbox">Execution trace<br>
+                    {% endif %}
+                    Maximum instructions per test:
+                    <SELECT name="exec" size="1">
+                        <option value="1000">10³</option>
+                        <option value="10000">10⁴</option>
+                        <option value="100000" selected>10⁵</option>
+                        <option value="1000000">10⁶</option>
+                        <option value="10000000">10⁷</option>
+                    </SELECT><br>
 
-            {% if unit == False %}
-            <button type="submit" id="submit_button">Upload</button>
+                    {% if unit == False %}
+                    <button type="submit" id="submit_button">Upload</button>
+                    {% else %}
+                    <button type="submit" id="submit_button">Test my code!</button>
+                    {% endif %}
+
+                    {% if unit == True %}
+            </div>
+            <div class="col-6">
+                <h6>Your code:</h6>
+                <textarea form="submit_code" id="code" name="code_area" style="font-family:monospace"
+                    placeholder="Write your code here..." rows="30"></textarea>
+            </div>
+            </form>
             {% else %}
-            <button type="submit" id="submit_button">Test my code!</button>
-            {% endif %}
-
-            {% if unit == True %}
-    </div>
-    <div class="col-6">
-        <h6>Your code:</h6>
-        <textarea form="submit_code" id="code" name="code_area" style="font-family:monospace"
-            placeholder="Write your code here..." rows="30"></textarea>
-    </div>
-    </form>
-    {% else %}
-</div>
-</form>
-{% endif %}
-</form>
-</div>
-
-
-<h3>Output</h3>
-<div class="row">
-    <div class="col-6">
-        <h6>Uploaded code:</h6>
-        <pre><code id="code_result">Run your code to see your results.</code></pre>
-    </div>
-    <div class="col-6">
-        {% if unit == True %}
-        <h6>End state:</h6>
-        <pre><code id="end_state"></code></pre>
-        {% else %}
-        <h6>Results:</h6>
-        <!-- <pre><code id="tests_results"></code></pre> -->
-        <div id="tests_results"></div> 
+        </div>
+        </form>
         {% endif %}
+        </form>
     </div>
-</div>
-{% if unit == True %}
-<div class="row">
-    <div class="col-6">
-        <h6>execution trace:</h6>
-        <pre><code id="tests_results"></code></pre>
+
+
+    <h3>Output</h3>
+    <div class="row">
+        <div class="col-6">
+            <h6>Uploaded code:</h6>
+            <pre><code id="code_result">Run your code to see your results.</code></pre>
+        </div>
+        <div class="col-6">
+            {% if unit == True %}
+            <h6>End state:</h6>
+            <pre><code id="end_state"></code></pre>
+            {% else %}
+            <h6>Results:</h6>
+            <!-- <pre><code id="tests_results"></code></pre> -->
+            <div id="tests_results"></div>
+            {% endif %}
+        </div>
     </div>
-</div>
-{% endif %}
-{% endblock %}
+    {% if unit == True %}
+    <div class="row">
+        <div class="col-6">
+            <h6>execution trace:</h6>
+            <pre><code id="tests_results"></code></pre>
+        </div>
+    </div>
+    {% endif %}
+
+
+    </div>
+</body>
+
+</html>
