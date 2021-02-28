@@ -17,7 +17,7 @@ function processRisc(event) {
 
     let tests = document.getElementById("tests_results");
     if (tests && Array.isArray(d.tests_results)) {
-        tests.innerHTML = `<p>${d.tests_results.map(t => t[0] ? `👍 ${t[1]}` : `❌ ${t[1]}`).join('</p><p>')}</p>`
+        tests.innerHTML = `<p>${d.tests_results.map(t => t.test ? `👍 ${t.result_str}` : `❌ ${t.result_str}`).join('</p><p>')}</p>`
     } else if (tests) {
         tests.textContent = d.tests_results
     }

@@ -37,7 +37,7 @@ def upload():
                 tests = librisc16_rs.test_batch_par_py(
                     max_instr, trace_bool, text, input_vec
                 )
-                tests_passed = ex.verify(tests)
+                tests_passed = ex.verify([reg.registers for reg in tests])
                 res = ex.create_report(tests_passed, tests)
             except BaseException as e:
                 # print(e)

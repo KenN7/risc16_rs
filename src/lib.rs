@@ -82,14 +82,21 @@ impl From<std::num::ParseFloatError> for CustomError {
 
 type RiscResult<T> = std::result::Result<T, CustomError>;
 
+#[pyclass]
 struct Risc16 {
+    #[pyo3(get)]
     registers: [i16; 8],
+    #[pyo3(get)]
     pc: usize,
     ram: [i16; 256],
+    #[pyo3(get)]
     instr_count: u32,
+    #[pyo3(get)]
     max_instr: u32,
+    #[pyo3(get)]
     labels: HashMap<String, usize>,
     arch: Archtype,
+    #[pyo3(get)]
     buffer: String,
 }
 
@@ -623,7 +630,8 @@ fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
         trace: bool,
         code: &str,
         tests: Vec<Vec<(i32, i32)>>,
-    ) -> PyResult<Vec<[i16; 8]>> {
+        // ) -> PyResult<Vec<[i16; 8]>> {
+    ) -> PyResult<Vec<Risc16>> {
         let (rom, labels) = match load_rom(code.to_string()) {
             Ok((rom, labels)) => (rom, labels),
             Err(e) => return Err(PyErr::from(e)),
@@ -643,7 +651,8 @@ fn librisc16_rs(_py: Python, m: &PyModule) -> PyResult<()> {
                             writeln!(proc.buffer, "Error! {}", e).unwrap();
                         }
                     }
-                    return proc.registers;
+                    // return proc.registers;
+                    return proc;
                 })
                 .collect::<Vec<_>>();
             Ok(outputs)

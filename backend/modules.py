@@ -45,10 +45,7 @@ class exercise:
         for i, test_runs in enumerate(self.outputs):
             passed = True
             for output in test_runs:
-                if tests[i][output[0]] == output[1]:
-                    pass
-                    # print("passed for", output)
-                else:
+                if tests[i][output[0]] != output[1]:
                     passed = False
                     # print("failed", output, tests[i])
             results.append((i, passed))
@@ -62,13 +59,31 @@ class exercise:
                 d[f"ri{reg[0]}"] = to_16b_signed_hex(reg[1])
             for reg in self.outputs[r[0]]:
                 d[f"ro{reg[0]}"] = to_16b_signed_hex(reg[1])
-            for i, reg in enumerate(tests[r[0]]):
+            for i, reg in enumerate(tests[r[0]].registers):
                 d[f"risc{i}"] = to_16b_signed_hex(reg)
             if r[1]:  # passed
-                l.append((True, self.passpattern.format(**d)))
+                l.append(
+                    risc16_to_json(tests[r[0]], True, self.passpattern.format(**d))
+                )
             else:  # failed
-                l.append((False, self.failpattern.format(**d)))
+                l.append(
+                    risc16_to_json(tests[r[0]], False, self.failpattern.format(**d))
+                )
         return l
+
+
+# function used to serialize risc 16 proc objects to dict so that
+# flask can json serialize it.
+def risc16_to_json(proc, test_bool, test_str):
+    return {
+        "buffer": proc.buffer,
+        "instr_count": proc.instr_count,
+        "labels": proc.labels,
+        "pc": proc.pc,
+        "registers": proc.registers,
+        "test": test_bool,
+        "result_str": test_str,
+    }
 
 
 # dirty hack for converting hax unsigned value to their i16 counterpart
