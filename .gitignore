@@ -1,3 +1,4 @@
 /target
 Cargo.lock
 templates/*.bak
+__pycache__/
