@@ -59,9 +59,11 @@ function switchMode(el) {
 function toggleSubmitButton(state) {
     let button = document.getElementById("submit_button")
     button.disabled = state;
-    button.classList.contains("button--loading")
-        ? button.classList.remove("button--loading")
+    state === false ? button.classList.remove("button--loading")
         : button.classList.add("button--loading")
+    state === false ? button.style.color = "var(--font-color)"
+        : button.style.color = "transparent"
+
 }
 
 function sendData(form) {
