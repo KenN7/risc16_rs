@@ -88,12 +88,14 @@
             <div class="col-6">
                 {% if unit == False %}
                 <h3>Choose an exercise and upload your program...</h3>
-                <p>This simulator will ignore 2 instructions per register used in the tests at the beginning of your
-                    code.
-                    Start your code after those instructions. Read section 5 of the handout for more information.</p>
+                <p>
+                   This simulator will directly inject test values into the input registers, it does not modify your
+                   code. Therefore, you need to remove (or comment) any instruction (like movi) that may overload the 
+                   input regiters with values at the beginning of your code.
+                </p>
                 <h5>Example:</h5>
                 <pre><code>
-movi 5,0x0001 //this will be replaced by 2 nop
+// movi 5,0x0001 //this should be commented out
 add 5,5,5 
 halt //don't forget this</code></pre>
                 {% else %}
