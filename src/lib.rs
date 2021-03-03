@@ -244,8 +244,13 @@ impl Risc16 {
             _ => return Err("Bad argument types".into()),
         };
         //Vec<usize>
-        self.registers[args[0]] = (*self.registers.get(args[1]).ok_or("")?)
-            .wrapping_add(*self.registers.get(args[2]).ok_or("")?);
+        let val1 = *self.registers.get(args[1]).ok_or("")?;
+        let val2 = *self.registers.get(args[2]).ok_or("")?;
+        let reg = self
+            .registers
+            .get_mut(args[0])
+            .ok_or("Index of register out of bounds.")?;
+        *reg = val1.wrapping_add(val2);
         Ok(true)
     }
 
@@ -262,7 +267,12 @@ impl Risc16 {
             // println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm).unwrap();
         }
-        self.registers[args.0] = (*self.registers.get(args.1).ok_or("")?).wrapping_add(imm);
+        let val = *self.registers.get(args.1).ok_or("")?;
+        let reg = self
+            .registers
+            .get_mut(args.0)
+            .ok_or("Index of register out of bounds.")?;
+        *reg = val.wrapping_add(imm);
         Ok(true)
     }
 
@@ -272,8 +282,13 @@ impl Risc16 {
             _ => return Err("Bad argument types".into()),
         };
         //Vec<usize>
-        self.registers[args[0]] =
-            !(*self.registers.get(args[1]).ok_or("")? & *self.registers.get(args[2]).ok_or("")?);
+        let val1 = *self.registers.get(args[1]).ok_or("")?;
+        let val2 = *self.registers.get(args[2]).ok_or("")?;
+        let reg = self
+            .registers
+            .get_mut(args[0])
+            .ok_or("Index of register out of bounds.")?;
+        *reg = !(val1 & val2);
         Ok(true)
     }
 
@@ -283,9 +298,14 @@ impl Risc16 {
             _ => return Err("Bad argument types".into()),
         };
         //(usize, String)
-        self.registers[args.0] = self
+        let val = self
             .process_string_args(&args.1)
             .ok_or("Error processing label/imm")?;
+        let reg = self
+            .registers
+            .get_mut(args.0)
+            .ok_or("Index of register out of bounds.")?;
+        *reg = val;
         Ok(true)
     }
 
@@ -302,7 +322,11 @@ impl Risc16 {
             // println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
-        self.registers[args.0] = imm.wrapping_shl(5);
+        let reg = self
+            .registers
+            .get_mut(args.0)
+            .ok_or("Index of register out of bounds.")?;
+        *reg = imm.wrapping_shl(5);
         Ok(true)
     }
 
@@ -320,7 +344,15 @@ impl Risc16 {
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
         let address = *self.registers.get(args.1).ok_or("")? + imm;
-        self.registers[args.0] = self.ram[address as usize];
+        let reg = self
+            .registers
+            .get_mut(args.0)
+            .ok_or("Index of register out of bounds.")?;
+        let val = *self
+            .ram
+            .get(address as usize)
+            .ok_or("Index of memory out of bounds.")?;
+        *reg = val;
         Ok(true)
     }
 
@@ -338,7 +370,11 @@ impl Risc16 {
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
         let address = *self.registers.get(args.1).ok_or("")? + imm;
-        self.ram[address as usize] = *self.registers.get(args.0).ok_or("")?;
+        let ram = self
+            .ram
+            .get_mut(address as usize)
+            .ok_or("Index of memory out of bounds.")?;
+        *ram = *self.registers.get(args.0).ok_or("")?;
         Ok(true)
     }
 
@@ -384,8 +420,16 @@ impl Risc16 {
             Args::A23(a) => a,
             _ => return Err("Bad argument types".into()),
         };
-        self.registers[args[0]] = self.pc as i16 + 1;
-        self.pc = self.registers[args[1]] as usize - 1;
+        let val = *self
+            .registers
+            .get(args[1])
+            .ok_or("Index of register out of bounds.")?;
+        let reg = self
+            .registers
+            .get_mut(args[0])
+            .ok_or("Index of register out of bounds.")?;
+        *reg = self.pc as i16 + 1;
+        self.pc = val as usize - 1;
         Ok(true)
     }
 }
