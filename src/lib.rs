@@ -311,6 +311,7 @@ impl Risc16 {
             Args::A2i(a) => a,
             _ => return Err("Bad argument types".into()),
         };
+        println!("{:?}", args);
         //(usize, usize, String)
         let imm = self
             .process_string_args(&args.2)
@@ -319,8 +320,9 @@ impl Risc16 {
             // println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
-        self.registers[args.0] =
-            self.ram[*self.registers.get(args.0).ok_or("")? as usize + imm as usize];
+        let address = *self.registers.get(args.1).ok_or("")? + imm;
+        println!("{}", address);
+        self.registers[args.0] = self.ram[address as usize];
         Ok(true)
     }
 
@@ -337,8 +339,8 @@ impl Risc16 {
             // println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm)?;
         }
-        self.ram[*self.registers.get(args.0).ok_or("")? as usize + imm as usize] =
-            *self.registers.get(args.0).ok_or("")?;
+        let address = *self.registers.get(args.1).ok_or("")? + imm;
+        self.ram[address as usize] = *self.registers.get(args.0).ok_or("")?;
         Ok(true)
     }
 
