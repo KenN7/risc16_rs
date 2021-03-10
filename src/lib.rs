@@ -465,7 +465,7 @@ impl fmt::Display for Args {
 fn process_args_vec(args: &str, len: usize) -> RiscResult<Args> {
     let vec_arg = args
         .split(',')
-        .map(|x| x.parse::<usize>())
+        .map(|x| x.trim().parse::<usize>())
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| CustomError::from(e))?;
     if vec_arg.len() != len {
@@ -477,8 +477,8 @@ fn process_args_vec(args: &str, len: usize) -> RiscResult<Args> {
 fn process_args_2i(args: &str) -> RiscResult<Args> {
     let vec_arg: Vec<&str> = args.split(',').collect();
     Ok(Args::A2i((
-        vec_arg[0].parse()?,
-        vec_arg[1].parse()?,
+        vec_arg[0].trim().parse()?,
+        vec_arg[1].trim().parse()?,
         vec_arg[2].trim().to_owned(),
     )))
 }
@@ -486,7 +486,7 @@ fn process_args_2i(args: &str) -> RiscResult<Args> {
 fn process_args_1i(args: &str) -> RiscResult<Args> {
     let vec_arg: Vec<&str> = args.split(',').collect();
     Ok(Args::A1i((
-        vec_arg[0].parse()?,
+        vec_arg[0].trim().parse()?,
         vec_arg[1].trim().to_owned(),
     )))
 }
