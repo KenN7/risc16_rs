@@ -260,9 +260,17 @@ impl Risc16 {
             _ => return Err("Bad argument types".into()),
         };
         //(usize, usize, String)
-        let imm = self
-            .process_string_args(&args.2)
-            .ok_or("Error processing label/imm")?;
+        let imm = match self.labels.get(&args.2) {
+            Some(res) => *res as i32,
+            None => match self.process_string_args(&args.2) {
+                Some(res) => res.into(),
+                _ => {
+                    // println!("Impossible to parse jump");
+                    writeln!(self.buffer, "Error processing label/imm")?;
+                    return Err("Error processing label/imm".into());
+                }
+            },
+        } as i16;
         if imm > 63 || imm < -64 {
             // println!("/!\\ Immediate Too BIG : {}", imm);
             writeln!(self.buffer, "/!\\ Immediate Too BIG : {}", imm).unwrap();
@@ -298,9 +306,18 @@ impl Risc16 {
             _ => return Err("Bad argument types".into()),
         };
         //(usize, String)
-        let val = self
-            .process_string_args(&args.1)
-            .ok_or("Error processing label/imm")?;
+        let val = match self.labels.get(&args.1) {
+            Some(res) => *res as i32,
+            None => match self.process_string_args(&args.1) {
+                Some(res) => res.into(),
+                _ => {
+                    // println!("Impossible to parse jump");
+                    writeln!(self.buffer, "Error processing label/imm")?;
+                    return Err("Error processing label/imm".into());
+                }
+            },
+        } as i16;
+
         let reg = self
             .registers
             .get_mut(args.0)
@@ -385,11 +402,11 @@ impl Risc16 {
         };
         //(usize, usize, String)
         if self.registers.get(args.1).ok_or("")? == self.registers.get(args.0).ok_or("")? {
-            let lab;
+            let jump;
             match self.labels.get(&args.2) {
-                Some(res) => lab = *res as i32 - 1,
+                Some(res) => jump = *res as i32 - 1 - self.pc as i32,
                 None => match self.process_string_args(&args.2) {
-                    Some(res) => lab = res.into(),
+                    Some(res) => jump = res.into(),
                     _ => {
                         // println!("Impossible to parse jump");
                         writeln!(self.buffer, "Impossible to parse jump")?;
@@ -397,8 +414,8 @@ impl Risc16 {
                     }
                 },
             }
-            if lab - (self.pc as i32) < -64 || lab - self.pc as i32 > 63 {
-                let jump = lab - self.pc as i32;
+            // let jump = lab - self.pc as i32;
+            if jump < -64 || jump > 63 {
                 // println!("WARNING, Jump too long: \"{}\" of size {}", &args.2, jump);
                 writeln!(
                     self.buffer,
@@ -406,8 +423,8 @@ impl Risc16 {
                     &args.2, jump
                 )?;
             }
-            self.pc = lab as usize;
-            // println!("Jumping to: {}: {}", self.pc, &args.2);
+            self.pc = (self.pc as i32 + jump) as usize;
+            // println!("Jumping to: {}: {}, {}, ", self.pc, &args.2, jump);
             //FIXME TODO exec trace
             // writeln!(self.buffer, "Jumping to: {}: {}", self.pc, &args.2)?;
         }
